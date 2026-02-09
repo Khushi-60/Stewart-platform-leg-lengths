@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6-UPS Stewart Platform Calculator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+        
+        :root {
+            --primary: #00d9ff;
+            --secondary: #ff00ea;
+            --accent: #ffea00;
+            --dark: #0a0e27;
+            --darker: #050814;
+            --light: #e0f7ff;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --shadow: rgba(0, 217, 255, 0.2);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, #1a1042 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--glass-border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--glass-border) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.3;
+            z-index: 0;
+            animation: gridMove 20s linear infinite;
+        }
+        
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+        
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+            box-shadow: 0 0 10px var(--primary);
+            animation: float 15s infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+        }
+        
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: slideDown 0.8s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 30px var(--shadow);
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            color: var(--primary);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 30px;
+            animation: fadeIn 1s ease-out 0.3s both;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .panel:hover {
+            border-color: var(--primary);
+            box-shadow: 0 8px 32px var(--shadow);
+        }
+        
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .panel-title::before {
+            content: '▸';
+            color: var(--accent);
+            font-size: 1.2em;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        .input-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .input-field {
+            position: relative;
+        }
+        
+        label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+        
+        input[type="number"],
+        input[type="range"] {
+            width: 100%;
+            background: rgba(0, 217, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--light);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--shadow);
+            background: rgba(0, 217, 255, 0.1);
+        }
+        
+        input[type="range"] {
+            padding: 0;
+            height: 6px;
+            cursor: pointer;
+            appearance: none;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--primary);
+            transition: all 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px var(--primary);
+        }
+        
+        .slider-value {
+            display: inline-block;
+            background: var(--glass);
+            border: 1px solid var(--primary);
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 0.9rem;
+            color: var(--primary);
+            margin-top: 5px;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        button {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 15px 30px;
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            background: var(--glass);
+            color: var(--primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: var(--primary);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s, height 0.5s;
+            z-index: -1;
+        }
+        
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        button:hover {
+            color: var(--dark);
+            border-color: var(--primary);
+            box-shadow: 0 0 30px var(--shadow);
+        }
+        
+        button.secondary {
+            border-color: var(--glass-border);
+            color: var(--light);
+        }
+        
+        button.secondary::before {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        button.secondary:hover {
+            border-color: var(--light);
+            color: var(--light);
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .result-card {
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(255, 0, 234, 0.1));
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease-out both;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .result-card:nth-child(1) { animation-delay: 0.1s; }
+        .result-card:nth-child(2) { animation-delay: 0.2s; }
+        .result-card:nth-child(3) { animation-delay: 0.3s; }
+        .result-card:nth-child(4) { animation-delay: 0.4s; }
+        .result-card:nth-child(5) { animation-delay: 0.5s; }
+        .result-card:nth-child(6) { animation-delay: 0.6s; }
+        
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px var(--shadow);
+            border-color: var(--accent);
+        }
+        
+        .result-label {
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .result-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--light);
+            text-shadow: 0 0 10px var(--primary);
+        }
+        
+        .result-unit {
+            font-size: 0.9rem;
+            color: var(--primary);
+            margin-left: 5px;
+        }
+        
+        #canvas-container {
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            overflow: hidden;
+            height: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        .info-banner {
+            background: linear-gradient(90deg, rgba(0, 217, 255, 0.1), rgba(255, 0, 234, 0.1));
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .info-icon {
+            font-size: 1.5rem;
+            color: var(--accent);
+        }
+        
+        .info-text {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Orbitron', sans-serif;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+        
+        .spinner {
+            border: 3px solid var(--glass-border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            opacity: 0.6;
+            font-size: 0.85rem;
+        }
+        
+        /* Preset buttons */
+        .presets {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .preset-btn {
+            padding: 10px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating particles -->
+    <script>
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            document.body.appendChild(particle);
+        }
+    </script>
+
+    <div class="container">
+        <header>
+            <h1>6-UPS STEWART PLATFORM</h1>
+            <div class="subtitle">Inverse Kinematics Calculator</div>
+        </header>
+
+        <div class="main-grid">
+            <!-- Input Panel -->
+            <div>
+                <div class="panel">
+                    <div class="panel-title">Position Controls</div>
+                    
+                    <!-- Presets -->
+                    <div class="presets">
+                        <button class="preset-btn" onclick="loadPreset('neutral')">Neutral</button>
+                        <button class="preset-btn" onclick="loadPreset('raised')">Raised</button>
+                        <button class="preset-btn" onclick="loadPreset('tilted')">Tilted</button>
+                        <button class="preset-btn" onclick="loadPreset('combined')">Combined</button>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label style="margin-bottom: 15px;">Translation (mm)</label>
+                        <div class="input-row">
+                            <div class="input-field">
+                                <label>X Position</label>
+                                <input type="number" id="x" value="0" min="-50" max="50" step="1" oninput="calculate()">
+                                <input type="range" id="x-slider" min="-50" max="50" step="1" value="0" oninput="syncInput('x', this.value)">
+                                <div class="slider-value" id="x-value">0 mm</div>
+                            </div>
+                            <div class="input-field">
+                                <label>Y Position</label>
+                                <input type="number" id="y" value="0" min="-50" max="50" step="1" oninput="calculate()">
+                                <input type="range" id="y-slider" min="-50" max="50" step="1" value="0" oninput="syncInput('y', this.value)">
+                                <div class="slider-value" id="y-value">0 mm</div>
+                            </div>
+                            <div class="input-field">
+                                <label>Z Position</label>
+                                <input type="number" id="z" value="0" min="-50" max="50" step="1" oninput="calculate()">
+                                <input type="range" id="z-slider" min="-50" max="50" step="1" value="0" oninput="syncInput('z', this.value)">
+                                <div class="slider-value" id="z-value">0 mm</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label style="margin-bottom: 15px;">Rotation (degrees)</label>
+                        <div class="input-row">
+                            <div class="input-field">
+                                <label>Roll (α)</label>
+                                <input type="number" id="alpha" value="0" min="-15" max="15" step="0.5" oninput="calculate()">
+                                <input type="range" id="alpha-slider" min="-15" max="15" step="0.5" value="0" oninput="syncInput('alpha', this.value)">
+                                <div class="slider-value" id="alpha-value">0°</div>
+                            </div>
+                            <div class="input-field">
+                                <label>Pitch (β)</label>
+                                <input type="number" id="beta" value="0" min="-15" max="15" step="0.5" oninput="calculate()">
+                                <input type="range" id="beta-slider" min="-15" max="15" step="0.5" value="0" oninput="syncInput('beta', this.value)">
+                                <div class="slider-value" id="beta-value">0°</div>
+                            </div>
+                            <div class="input-field">
+                                <label>Yaw (γ)</label>
+                                <input type="number" id="gamma" value="0" min="-15" max="15" step="0.5" oninput="calculate()">
+                                <input type="range" id="gamma-slider" min="-15" max="15" step="0.5" value="0" oninput="syncInput('gamma', this.value)">
+                                <div class="slider-value" id="gamma-value">0°</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button onclick="calculate()">Calculate</button>
+                        <button class="secondary" onclick="reset()">Reset</button>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">Leg Lengths</div>
+                    <div class="results-grid">
+                        <div class="result-card">
+                            <div class="result-label">Leg 1</div>
+                            <div class="result-value" id="L1">--<span class="result-unit">mm</span></div>
+                        </div>
+                        <div class="result-card">
+                            <div class="result-label">Leg 2</div>
+                            <div class="result-value" id="L2">--<span class="result-unit">mm</span></div>
+                        </div>
+                        <div class="result-card">
+                            <div class="result-label">Leg 3</div>
+                            <div class="result-value" id="L3">--<span class="result-unit">mm</span></div>
+                        </div>
+                        <div class="result-card">
+                            <div class="result-label">Leg 4</div>
+                            <div class="result-value" id="L4">--<span class="result-unit">mm</span></div>
+                        </div>
+                        <div class="result-card">
+                            <div class="result-label">Leg 5</div>
+                            <div class="result-value" id="L5">--<span class="result-unit">mm</span></div>
+                        </div>
+                        <div class="result-card">
+                            <div class="result-label">Leg 6</div>
+                            <div class="result-value" id="L6">--<span class="result-unit">mm</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-banner">
+                        <div class="info-icon">ℹ</div>
+                        <div class="info-text">
+                            The platform uses 100mm base radius and 80mm platform radius. 
+                            Workspace: ±50mm translation, ±15° rotation.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization Panel -->
+            <div class="panel">
+                <div class="panel-title">3D Visualization</div>
+                <div id="canvas-container">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Initializing 3D View...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>6-UPS Stewart-Gough Platform Calculator | Neural Network Inverse Kinematics Project</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Stewart Platform Geometry
+        const BASE_RADIUS = 100;
+        const PLATFORM_RADIUS = 80;
+        
+        // Generate attachment points
+        function generateBasePoints() {
+            const angles = [0, 60, 120, 180, 240, 300].map(d => d * Math.PI / 180);
+            return angles.map(angle => ({
+                x: BASE_RADIUS * Math.cos(angle),
+                y: BASE_RADIUS * Math.sin(angle),
+                z: 0
+            }));
+        }
+        
+        function generatePlatformPoints() {
+            const angles = [30, 90, 150, 210, 270, 330].map(d => d * Math.PI / 180);
+            return angles.map(angle => ({
+                x: PLATFORM_RADIUS * Math.cos(angle),
+                y: PLATFORM_RADIUS * Math.sin(angle),
+                z: 0
+            }));
+        }
+        
+        const basePoints = generateBasePoints();
+        const platformPoints = generatePlatformPoints();
+        
+        // Rotation matrices
+        function rotationX(alpha) {
+            const c = Math.cos(alpha), s = Math.sin(alpha);
+            return [
+                [1, 0, 0],
+                [0, c, -s],
+                [0, s, c]
+            ];
+        }
+        
+        function rotationY(beta) {
+            const c = Math.cos(beta), s = Math.sin(beta);
+            return [
+                [c, 0, s],
+                [0, 1, 0],
+                [-s, 0, c]
+            ];
+        }
+        
+        function rotationZ(gamma) {
+            const c = Math.cos(gamma), s = Math.sin(gamma);
+            return [
+                [c, -s, 0],
+                [s, c, 0],
+                [0, 0, 1]
+            ];
+        }
+        
+        function matrixMultiply(A, B) {
+            const result = [];
+            for (let i = 0; i < 3; i++) {
+                result[i] = [];
+                for (let j = 0; j < 3; j++) {
+                    result[i][j] = 0;
+                    for (let k = 0; k < 3; k++) {
+                        result[i][j] += A[i][k] * B[k][j];
+                    }
+                }
+            }
+            return result;
+        }
+        
+        function rotationMatrixZYX(alpha, beta, gamma) {
+            const Rx = rotationX(alpha);
+            const Ry = rotationY(beta);
+            const Rz = rotationZ(gamma);
+            return matrixMultiply(Rz, matrixMultiply(Ry, Rx));
+        }
+        
+        function transformPoint(point, R, t) {
+            return {
+                x: R[0][0] * point.x + R[0][1] * point.y + R[0][2] * point.z + t.x,
+                y: R[1][0] * point.x + R[1][1] * point.y + R[1][2] * point.z + t.y,
+                z: R[2][0] * point.x + R[2][1] * point.y + R[2][2] * point.z + t.z
+            };
+        }
+        
+        function distance(p1, p2) {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            const dz = p1.z - p2.z;
+            return Math.sqrt(dx * dx + dy * dy + dz * dz);
+        }
+        
+        // Calculate leg lengths
+        function calculateLegLengths(x, y, z, alpha, beta, gamma) {
+            // Convert angles to radians
+            alpha = alpha * Math.PI / 180;
+            beta = beta * Math.PI / 180;
+            gamma = gamma * Math.PI / 180;
+            
+            const R = rotationMatrixZYX(alpha, beta, gamma);
+            const t = { x, y, z };
+            
+            const legLengths = [];
+            const transformedPoints = [];
+            
+            for (let i = 0; i < 6; i++) {
+                const transformed = transformPoint(platformPoints[i], R, t);
+                transformedPoints.push(transformed);
+                const length = distance(transformed, basePoints[i]);
+                legLengths.push(length);
+            }
+            
+            return { legLengths, transformedPoints };
+        }
+        
+        // Sync input and slider
+        function syncInput(id, value) {
+            document.getElementById(id).value = value;
+            document.getElementById(id + '-slider').value = value;
+            const unit = ['x', 'y', 'z'].includes(id) ? ' mm' : '°';
+            document.getElementById(id + '-value').textContent = value + unit;
+            calculate();
+        }
+        
+        // Load preset configurations
+        function loadPreset(preset) {
+            const presets = {
+                neutral: { x: 0, y: 0, z: 0, alpha: 0, beta: 0, gamma: 0 },
+                raised: { x: 0, y: 0, z: 30, alpha: 0, beta: 0, gamma: 0 },
+                tilted: { x: 0, y: 0, z: 0, alpha: 0, beta: 10, gamma: 0 },
+                combined: { x: 10, y: 10, z: 20, alpha: 5, beta: 5, gamma: 10 }
+            };
+            
+            const config = presets[preset];
+            ['x', 'y', 'z', 'alpha', 'beta', 'gamma'].forEach(id => {
+                syncInput(id, config[id]);
+            });
+        }
+        
+        // Calculate and update display
+        function calculate() {
+            const x = parseFloat(document.getElementById('x').value) || 0;
+            const y = parseFloat(document.getElementById('y').value) || 0;
+            const z = parseFloat(document.getElementById('z').value) || 0;
+            const alpha = parseFloat(document.getElementById('alpha').value) || 0;
+            const beta = parseFloat(document.getElementById('beta').value) || 0;
+            const gamma = parseFloat(document.getElementById('gamma').value) || 0;
+            
+            const { legLengths, transformedPoints } = calculateLegLengths(x, y, z, alpha, beta, gamma);
+            
+            // Update results
+            legLengths.forEach((length, i) => {
+                document.getElementById('L' + (i + 1)).innerHTML = 
+                    length.toFixed(2) + '<span class="result-unit">mm</span>';
+            });
+            
+            // Update 3D visualization
+            updateVisualization(transformedPoints, legLengths);
+        }
+        
+        function reset() {
+            loadPreset('neutral');
+        }
+        
+        // Three.js Visualization
+        let scene, camera, renderer, platformMesh, baseMesh, legs = [];
+        
+        function initVisualization() {
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0e27);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
+            camera.position.set(250, 200, 250);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            container.innerHTML = '';
+            container.appendChild(renderer.domElement);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0x00d9ff, 1);
+            directionalLight.position.set(100, 200, 100);
+            scene.add(directionalLight);
+            
+            const pointLight = new THREE.PointLight(0xff00ea, 0.5);
+            pointLight.position.set(-100, 50, -100);
+            scene.add(pointLight);
+            
+            // Grid
+            const gridHelper = new THREE.GridHelper(400, 20, 0x00d9ff, 0x444444);
+            gridHelper.position.y = -10;
+            scene.add(gridHelper);
+            
+            // Base platform
+            const baseGeometry = new THREE.CircleGeometry(BASE_RADIUS, 32);
+            const baseMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x0066ff,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            });
+            baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
+            baseMesh.rotation.x = -Math.PI / 2;
+            scene.add(baseMesh);
+            
+            // Base attachment points
+            basePoints.forEach(point => {
+                const geometry = new THREE.SphereGeometry(5, 16, 16);
+                const material = new THREE.MeshPhongMaterial({ color: 0x00d9ff });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(point.x, point.z, point.y);
+                scene.add(sphere);
+            });
+            
+            // Moving platform
+            const platformGeometry = new THREE.CircleGeometry(PLATFORM_RADIUS, 32);
+            const platformMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xff0066,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            });
+            platformMesh = new THREE.Mesh(platformGeometry, platformMaterial);
+            platformMesh.rotation.x = -Math.PI / 2;
+            scene.add(platformMesh);
+            
+            // Legs
+            for (let i = 0; i < 6; i++) {
+                const material = new THREE.LineBasicMaterial({ color: 0xffea00, linewidth: 2 });
+                const geometry = new THREE.BufferGeometry();
+                const line = new THREE.Line(geometry, material);
+                scene.add(line);
+                legs.push(line);
+            }
+            
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                renderer.render(scene, camera);
+            }
+            animate();
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+        }
+        
+        function updateVisualization(transformedPoints, legLengths) {
+            if (!platformMesh) return;
+            
+            // Update platform position
+            const x = parseFloat(document.getElementById('x').value) || 0;
+            const y = parseFloat(document.getElementById('y').value) || 0;
+            const z = parseFloat(document.getElementById('z').value) || 0;
+            const alpha = (parseFloat(document.getElementById('alpha').value) || 0) * Math.PI / 180;
+            const beta = (parseFloat(document.getElementById('beta').value) || 0) * Math.PI / 180;
+            const gamma = (parseFloat(document.getElementById('gamma').value) || 0) * Math.PI / 180;
+            
+            platformMesh.position.set(x, z, y);
+            platformMesh.rotation.set(-Math.PI / 2 + alpha, gamma, beta);
+            
+            // Update legs
+            transformedPoints.forEach((point, i) => {
+                const points = [
+                    new THREE.Vector3(basePoints[i].x, basePoints[i].z, basePoints[i].y),
+                    new THREE.Vector3(point.x, point.z, point.y)
+                ];
+                legs[i].geometry.setFromPoints(points);
+            });
+            
+            // Add platform attachment points
+            scene.children.filter(obj => obj.userData.isPlatformPoint).forEach(obj => scene.remove(obj));
+            transformedPoints.forEach(point => {
+                const geometry = new THREE.SphereGeometry(5, 16, 16);
+                const material = new THREE.MeshPhongMaterial({ color: 0xff00ea });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(point.x, point.z, point.y);
+                sphere.userData.isPlatformPoint = true;
+                scene.add(sphere);
+            });
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initVisualization();
+            calculate();
+        });
+    </script>
+</body>
+</html>
