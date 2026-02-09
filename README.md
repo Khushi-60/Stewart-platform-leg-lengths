@@ -76,7 +76,7 @@ A Stewart platform (also known as Stewart-Gough platform) is a parallel manipula
 
 ### Option 1: Use Online (Recommended)
 
-Simply visit: [https://yourusername.github.io/stewart-platform-calculator/](https://yourusername.github.io/stewart-platform-calculator/)
+Simply visit: [https://yourusername.github.io/stewart-platform-calculator/](https://khushi-60.github.io/Stewart-platform-leg-lengths/)
 
 ### Option 2: Run Locally
 
