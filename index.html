@@ -374,10 +374,106 @@
             border: 1px solid var(--primary);
             border-radius: 20px;
             overflow: hidden;
-            height: 600px;
+            height: 500px;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+        
+        .matrix-display {
+            background: var(--glass);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        
+        .matrix-title {
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+        }
+        
+        .matrix-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .matrix-section {
+            flex: 1;
+            min-width: 280px;
+        }
+        
+        .matrix-label {
+            color: var(--accent);
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .matrix {
+            display: grid;
+            gap: 2px;
+            background: rgba(0, 217, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+        }
+        
+        .matrix-4x4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+        
+        .matrix-3x3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .matrix-cell {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--light);
+            border-radius: 4px;
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        
+        .vector-display {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            background: rgba(0, 217, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+        }
+        
+        .vector-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .vector-label {
+            color: var(--accent);
+            min-width: 20px;
+            font-weight: 700;
+        }
+        
+        .vector-value {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            flex: 1;
+            text-align: center;
+            font-size: 0.85rem;
         }
         
         canvas {
@@ -584,11 +680,53 @@
 
             <!-- Visualization Panel -->
             <div class="panel">
-                <div class="panel-title">3D Visualization</div>
+                <div class="panel-title">3D Visualization (Top View)</div>
                 <div id="canvas-container">
                     <div class="loading">
                         <div class="spinner"></div>
                         Initializing 3D View...
+                    </div>
+                </div>
+                
+                <!-- Transformation Matrix Display -->
+                <div class="matrix-display">
+                    <div class="matrix-title">Homogeneous Transformation Matrix</div>
+                    
+                    <div class="matrix-container">
+                        <!-- Complete 4x4 Transformation Matrix -->
+                        <div class="matrix-section">
+                            <div class="matrix-label">Complete Transformation T = [R | t]</div>
+                            <div class="matrix matrix-4x4" id="transformation-matrix">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <!-- Rotation Matrix -->
+                        <div class="matrix-section">
+                            <div class="matrix-label">Rotation Matrix R(α,β,γ)</div>
+                            <div class="matrix matrix-3x3" id="rotation-matrix">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <!-- Translation Vector -->
+                        <div class="matrix-section">
+                            <div class="matrix-label">Translation Vector t</div>
+                            <div class="vector-display" id="translation-vector">
+                                <div class="vector-row">
+                                    <span class="vector-label">x:</span>
+                                    <span class="vector-value" id="t-x">0.00</span>
+                                </div>
+                                <div class="vector-row">
+                                    <span class="vector-label">y:</span>
+                                    <span class="vector-value" id="t-y">0.00</span>
+                                </div>
+                                <div class="vector-row">
+                                    <span class="vector-label">z:</span>
+                                    <span class="vector-value" id="t-z">0.00</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -775,9 +913,9 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0a0e27);
             
-            // Camera
-            camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
-            camera.position.set(250, 200, 250);
+            // Camera - Top-down view
+            camera = new THREE.PerspectiveCamera(50, width / height, 1, 1000);
+            camera.position.set(0, 300, 50); // Top-down perspective
             camera.lookAt(0, 0, 0);
             
             // Renderer
@@ -787,67 +925,142 @@
             container.appendChild(renderer.domElement);
             
             // Lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
             
-            const directionalLight = new THREE.DirectionalLight(0x00d9ff, 1);
-            directionalLight.position.set(100, 200, 100);
-            scene.add(directionalLight);
+            const directionalLight1 = new THREE.DirectionalLight(0x00d9ff, 0.8);
+            directionalLight1.position.set(100, 200, 100);
+            scene.add(directionalLight1);
             
-            const pointLight = new THREE.PointLight(0xff00ea, 0.5);
-            pointLight.position.set(-100, 50, -100);
-            scene.add(pointLight);
+            const directionalLight2 = new THREE.DirectionalLight(0xff00ea, 0.5);
+            directionalLight2.position.set(-100, 200, -100);
+            scene.add(directionalLight2);
             
-            // Grid
-            const gridHelper = new THREE.GridHelper(400, 20, 0x00d9ff, 0x444444);
-            gridHelper.position.y = -10;
+            const topLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            topLight.position.set(0, 300, 0);
+            scene.add(topLight);
+            
+            // Grid (horizontal reference)
+            const gridHelper = new THREE.GridHelper(400, 20, 0x00d9ff, 0x333333);
+            gridHelper.position.y = -5;
             scene.add(gridHelper);
             
-            // Base platform
-            const baseGeometry = new THREE.CircleGeometry(BASE_RADIUS, 32);
+            // Axes helper
+            const axesHelper = new THREE.AxesHelper(150);
+            axesHelper.position.y = -5;
+            scene.add(axesHelper);
+            
+            // Base platform (more detailed)
+            const baseShape = new THREE.Shape();
+            const baseAngles = [0, 60, 120, 180, 240, 300, 360].map(d => d * Math.PI / 180);
+            baseAngles.forEach((angle, i) => {
+                const x = BASE_RADIUS * Math.cos(angle);
+                const y = BASE_RADIUS * Math.sin(angle);
+                if (i === 0) {
+                    baseShape.moveTo(x, y);
+                } else {
+                    baseShape.lineTo(x, y);
+                }
+            });
+            
+            const baseGeometry = new THREE.ShapeGeometry(baseShape);
             const baseMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0x0066ff,
                 transparent: true,
-                opacity: 0.3,
-                side: THREE.DoubleSide
+                opacity: 0.4,
+                side: THREE.DoubleSide,
+                shininess: 100
             });
             baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
             baseMesh.rotation.x = -Math.PI / 2;
+            baseMesh.position.y = 0;
             scene.add(baseMesh);
             
-            // Base attachment points
-            basePoints.forEach(point => {
-                const geometry = new THREE.SphereGeometry(5, 16, 16);
-                const material = new THREE.MeshPhongMaterial({ color: 0x00d9ff });
+            // Base outline
+            const baseEdges = new THREE.EdgesGeometry(baseGeometry);
+            const baseEdgeMaterial = new THREE.LineBasicMaterial({ color: 0x00d9ff, linewidth: 2 });
+            const baseWireframe = new THREE.LineSegments(baseEdges, baseEdgeMaterial);
+            baseWireframe.rotation.x = -Math.PI / 2;
+            baseWireframe.position.y = 0.1;
+            scene.add(baseWireframe);
+            
+            // Base attachment points with labels
+            basePoints.forEach((point, i) => {
+                const geometry = new THREE.SphereGeometry(4, 16, 16);
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: 0x00d9ff,
+                    emissive: 0x00d9ff,
+                    emissiveIntensity: 0.3
+                });
                 const sphere = new THREE.Mesh(geometry, material);
                 sphere.position.set(point.x, point.z, point.y);
                 scene.add(sphere);
+                
+                // Add ring around base points
+                const ringGeometry = new THREE.RingGeometry(5, 7, 16);
+                const ringMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0x00d9ff, 
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.set(point.x, point.z + 0.2, point.y);
+                scene.add(ring);
             });
             
-            // Moving platform
-            const platformGeometry = new THREE.CircleGeometry(PLATFORM_RADIUS, 32);
+            // Moving platform (more detailed)
+            const platformShape = new THREE.Shape();
+            const platformAngles = [30, 90, 150, 210, 270, 330, 30].map(d => d * Math.PI / 180);
+            platformAngles.forEach((angle, i) => {
+                const x = PLATFORM_RADIUS * Math.cos(angle);
+                const y = PLATFORM_RADIUS * Math.sin(angle);
+                if (i === 0) {
+                    platformShape.moveTo(x, y);
+                } else {
+                    platformShape.lineTo(x, y);
+                }
+            });
+            
+            const platformGeometry = new THREE.ShapeGeometry(platformShape);
             const platformMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0xff0066,
                 transparent: true,
-                opacity: 0.3,
-                side: THREE.DoubleSide
+                opacity: 0.5,
+                side: THREE.DoubleSide,
+                shininess: 100
             });
             platformMesh = new THREE.Mesh(platformGeometry, platformMaterial);
             platformMesh.rotation.x = -Math.PI / 2;
             scene.add(platformMesh);
             
-            // Legs
+            // Platform outline
+            const platformEdges = new THREE.EdgesGeometry(platformGeometry);
+            const platformEdgeMaterial = new THREE.LineBasicMaterial({ color: 0xff00ea, linewidth: 2 });
+            const platformWireframe = new THREE.LineSegments(platformEdges, platformEdgeMaterial);
+            platformMesh.add(platformWireframe);
+            
+            // Legs with cylinders for better visibility
             for (let i = 0; i < 6; i++) {
-                const material = new THREE.LineBasicMaterial({ color: 0xffea00, linewidth: 2 });
-                const geometry = new THREE.BufferGeometry();
-                const line = new THREE.Line(geometry, material);
-                scene.add(line);
-                legs.push(line);
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: 0xffea00,
+                    emissive: 0xffea00,
+                    emissiveIntensity: 0.2
+                });
+                const geometry = new THREE.CylinderGeometry(2, 2, 10, 8);
+                const leg = new THREE.Mesh(geometry, material);
+                scene.add(leg);
+                legs.push(leg);
             }
             
             // Animation loop
             function animate() {
                 requestAnimationFrame(animate);
+                
+                // Gentle rotation for better view
+                scene.rotation.y += 0.001;
+                
                 renderer.render(scene, camera);
             }
             animate();
@@ -876,25 +1089,134 @@
             platformMesh.position.set(x, z, y);
             platformMesh.rotation.set(-Math.PI / 2 + alpha, gamma, beta);
             
-            // Update legs
+            // Get rotation matrix and transformation matrix
+            const R = rotationMatrixZYX(alpha, beta, gamma);
+            updateMatrixDisplay(R, x, y, z);
+            
+            // Update legs with cylinders
             transformedPoints.forEach((point, i) => {
-                const points = [
-                    new THREE.Vector3(basePoints[i].x, basePoints[i].z, basePoints[i].y),
-                    new THREE.Vector3(point.x, point.z, point.y)
-                ];
-                legs[i].geometry.setFromPoints(points);
+                const basePoint = basePoints[i];
+                const platformPoint = point;
+                
+                // Calculate leg position and orientation
+                const legLength = legLengths[i];
+                const midX = (basePoint.x + platformPoint.x) / 2;
+                const midY = (basePoint.z + platformPoint.z) / 2;
+                const midZ = (basePoint.y + platformPoint.y) / 2;
+                
+                // Update cylinder geometry
+                const direction = new THREE.Vector3(
+                    platformPoint.x - basePoint.x,
+                    platformPoint.z - basePoint.z,
+                    platformPoint.y - basePoint.y
+                );
+                
+                // Remove old leg
+                scene.remove(legs[i]);
+                
+                // Create new cylinder leg
+                const geometry = new THREE.CylinderGeometry(2, 2, legLength, 8);
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: 0xffea00,
+                    emissive: 0xffea00,
+                    emissiveIntensity: 0.3,
+                    shininess: 50
+                });
+                const cylinder = new THREE.Mesh(geometry, material);
+                
+                // Position and orient the cylinder
+                cylinder.position.set(midX, midY, midZ);
+                
+                // Orient cylinder to connect points
+                const up = new THREE.Vector3(0, 1, 0);
+                const quaternion = new THREE.Quaternion();
+                quaternion.setFromUnitVectors(up, direction.normalize());
+                cylinder.setRotationFromQuaternion(quaternion);
+                
+                scene.add(cylinder);
+                legs[i] = cylinder;
             });
             
-            // Add platform attachment points
+            // Add/update platform attachment points
             scene.children.filter(obj => obj.userData.isPlatformPoint).forEach(obj => scene.remove(obj));
             transformedPoints.forEach(point => {
-                const geometry = new THREE.SphereGeometry(5, 16, 16);
-                const material = new THREE.MeshPhongMaterial({ color: 0xff00ea });
+                const geometry = new THREE.SphereGeometry(4, 16, 16);
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: 0xff00ea,
+                    emissive: 0xff00ea,
+                    emissiveIntensity: 0.3
+                });
                 const sphere = new THREE.Mesh(geometry, material);
                 sphere.position.set(point.x, point.z, point.y);
                 sphere.userData.isPlatformPoint = true;
                 scene.add(sphere);
+                
+                // Add ring around platform points
+                const ringGeometry = new THREE.RingGeometry(5, 7, 16);
+                const ringMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xff00ea, 
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.set(point.x, point.z + 0.2, point.y);
+                ring.userData.isPlatformPoint = true;
+                scene.add(ring);
             });
+        }
+        
+        function updateMatrixDisplay(R, x, y, z) {
+            // Update Rotation Matrix (3x3)
+            const rotationMatrixDiv = document.getElementById('rotation-matrix');
+            rotationMatrixDiv.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'matrix-cell';
+                    cell.textContent = R[i][j].toFixed(4);
+                    rotationMatrixDiv.appendChild(cell);
+                }
+            }
+            
+            // Update Complete Transformation Matrix (4x4)
+            const transformationMatrixDiv = document.getElementById('transformation-matrix');
+            transformationMatrixDiv.innerHTML = '';
+            
+            // First 3 rows: [R | t]
+            for (let i = 0; i < 3; i++) {
+                // Rotation part
+                for (let j = 0; j < 3; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'matrix-cell';
+                    cell.textContent = R[i][j].toFixed(4);
+                    transformationMatrixDiv.appendChild(cell);
+                }
+                // Translation part
+                const tCell = document.createElement('div');
+                tCell.className = 'matrix-cell';
+                const tValues = [x, y, z];
+                tCell.textContent = tValues[i].toFixed(2);
+                transformationMatrixDiv.appendChild(tCell);
+            }
+            
+            // Last row: [0 0 0 1]
+            for (let j = 0; j < 3; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'matrix-cell';
+                cell.textContent = '0.0000';
+                transformationMatrixDiv.appendChild(cell);
+            }
+            const lastCell = document.createElement('div');
+            lastCell.className = 'matrix-cell';
+            lastCell.textContent = '1.0000';
+            transformationMatrixDiv.appendChild(lastCell);
+            
+            // Update Translation Vector
+            document.getElementById('t-x').textContent = x.toFixed(2) + ' mm';
+            document.getElementById('t-y').textContent = y.toFixed(2) + ' mm';
+            document.getElementById('t-z').textContent = z.toFixed(2) + ' mm';
         }
         
         // Initialize on load
