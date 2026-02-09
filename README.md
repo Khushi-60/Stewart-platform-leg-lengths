@@ -18,7 +18,7 @@
 
 ## 🔗 Live Demo
 
-**Try it now:** [https://yourusername.github.io/stewart-platform-calculator/](https://yourusername.github.io/stewart-platform-calculator/)
+**Try it now:** [[https://yourusername.github.io/stewart-platform-calculator/](https://khushi-60.github.io/Stewart-platform-leg-lengths/)](https://yourusername.github.io/stewart-platform-calculator/)
 
 <!-- Replace 'yourusername' with your actual GitHub username -->
 
