@@ -309,11 +309,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-**Your Name** - your.email@example.com
+**Khushi** - khushism06@gmail.com
 
 **Project Link:** [https://github.com/yourusername/stewart-platform-calculator](https://github.com/yourusername/stewart-platform-calculator)
 
-**Live Demo:** [https://yourusername.github.io/stewart-platform-calculator/](https://yourusername.github.io/stewart-platform-calculator/)
+**Live Demo:** [https://yourusername.github.io/stewart-platform-calculator/]([https://khushi-60.github.io/Stewart-platform-leg-lengths/])
 
 ---
 
